@@ -13,6 +13,13 @@ public class Sopa_Lletres {
     char sortir = ' ';
     boolean paraulesEncertades = false;
     int opcio_correcte = 0;
+    boolean admin = false;
+    public long tempsInicial;
+    public long tempsFinal;
+
+    public final String ANSI_RESET = "\u001B[0m";
+    public final String ANSI_RED = "\u001B[31m";
+    public final String ANSI_GREEN = "\u001B[32m";
 
     public static void main(String[] args) {
         Sopa_Lletres main2 = new Sopa_Lletres();
@@ -25,9 +32,7 @@ public class Sopa_Lletres {
         do {
             MenuPrincipalPrint();
             OpcioPrincipal();
-
         } while (sortir() == false);
-
     }
 
     public void limiparSopa() {
@@ -35,6 +40,18 @@ public class Sopa_Lletres {
             for (int j = 0; j < sopa[i].length; j++) {
                 sopa[i][j] = '-';
             }
+        }
+        paraulesEncertades = false;
+        menuDiccionari = 0;
+        menuPrincipal = 0;
+        punter = 0;
+        opcio_correcte = 0;
+        mode = 0;
+        sortir = ' ';
+        admin = false;
+        for (int x = 0; x < paraulesSeleccionades.length; x++) {
+            paraulaCorrecta[x] = null;
+            paraulesSeleccionades[x] = null;
         }
     }
 
@@ -60,7 +77,6 @@ public class Sopa_Lletres {
             case 1:
                 System.out.println("Has seleccionat mantenir el diccionari");
                 MantenirDiccionari();
-
                 break;
             case 2:
                 System.out.println("Has seleccionat jugar");
@@ -81,15 +97,18 @@ public class Sopa_Lletres {
                         seleccionarMode();
                     } else {
                         System.out.println("Has trobat totes les paraules!!");
+                        pararCronometre();
                         limiparSopa();
                         break;
-                        // return;
                     }
                 }
                 break;
-
             case 3:
                 System.out.println("Has seleccionat sortir");
+                break;
+            case 7:
+                System.out.println("Has seleccionat el mode administrador");
+                admin = true;
                 break;
             default:
                 System.out.println("Opció incorrecta");
@@ -215,18 +234,10 @@ public class Sopa_Lletres {
         System.out.println();
         System.out.println();
         JugarSopa();
+        comencarCronometre();
     }
 
     public void JugarSopa() {
-        // 0: horitzontal dreta
-        // 1: horitzontal esquerra
-        // 2: vertical amunt
-        // 3: vertical avall
-        // 4: diagonal dreta amunt
-        // 5: diagonal dreta avall
-        // 6: diagonal esquerra amunt
-        // 7: diagonal esquerra avall
-
         for (int i = 0; i < paraulesSeleccionades.length; i++) {
             String paraula = paraulesSeleccionades[i];
             int allargada = paraula.length();
@@ -329,7 +340,6 @@ public class Sopa_Lletres {
                         break;
                 }
 
-                // Col·locar la paraula si l'espai està lliure
                 if (espaiLliure) {
                     switch (dir) {
                         case 0:
@@ -373,11 +383,12 @@ public class Sopa_Lletres {
                             }
                             break;
                     }
-                    colocada = true; // Marcar com a colocada
+                    colocada = true;
                 }
             }
         }
-        admin();
+        if (admin)
+            admin();
     }
 
     public void admin() {
@@ -397,7 +408,6 @@ public class Sopa_Lletres {
             }
             System.out.println();
         }
-
     }
 
     public void printarSopa() {
@@ -412,7 +422,11 @@ public class Sopa_Lletres {
                 if (sopa[i][j] == '-') {
                     sopa[i][j] = (char) (Math.random() * 26 + 'a');
                 }
-                System.out.print(sopa[i][j] + "\t");
+                if (Character.isUpperCase(sopa[i][j])) {
+                    System.out.print(ANSI_RED + sopa[i][j] + ANSI_RESET + "\t");
+                } else {
+                    System.out.print(ANSI_GREEN + sopa[i][j] + ANSI_RESET + "\t");
+                }
             }
             System.out.println();
         }
@@ -432,7 +446,6 @@ public class Sopa_Lletres {
                     }
                 }
             }
-
             if (trobar != true)
                 System.out.println((i + 1) + ": " + paraulesSeleccionades[i]);
         }
@@ -478,10 +491,10 @@ public class Sopa_Lletres {
         boolean correcte = true;
         if (paraulaSeparada.length == 3) {
             int inicialFila = Integer.parseInt(paraulaSeparada[1].substring(1)) - 1;
-            int inicialColumna = paraulaSeparada[1].charAt(0) - 'a';
+            int inicialColumna = paraulaSeparada[1].toLowerCase().charAt(0) - 'a';
             int finalFila = Integer.parseInt(paraulaSeparada[2].substring(1)) - 1;
-            int finalColumna = paraulaSeparada[2].charAt(0) - 'a';
-    
+            int finalColumna = paraulaSeparada[2].toLowerCase().charAt(0) - 'a';
+
             if (inicialColumna == finalColumna) {
                 ubicacio = 1; // Vertical
             } else if (inicialFila == finalFila) {
@@ -490,138 +503,133 @@ public class Sopa_Lletres {
                     && Math.abs(finalColumna - inicialColumna) == paraulaSeparada[0].length() - 1) {
                 ubicacio = 3; // Diagonal
             }
-    
+
             if (inicialFila >= 0 && inicialFila < 15 && inicialColumna >= 0 && inicialColumna < 10 && finalFila >= 0
                     && finalFila < 15 && finalColumna >= 0 && finalColumna < 10) {
                 switch (ubicacio) {
-                    case 1 -> { // Vertical avall
+                    case 1: // Vertical
+                        correcte = true;
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
                             if (inicialFila + x >= sopa.length
-                                    || sopa[inicialFila + x][inicialColumna] != paraulaSeparada[0].charAt(x)) {
+                                    || Character.toLowerCase(sopa[inicialFila + x][inicialColumna]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
-                            } else {
-                                opcio_correcte = 3;
                             }
                         }
-    
                         if (correcte) {
+                            opcio_correcte = 3;
                             break;
-                        } else {
-                            correcte = true;
                         }
-    
-                        // Vertical amunt
+
+                        correcte = true;
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
-                            if (inicialFila - x >= sopa.length
-                                    || sopa[inicialFila - x][inicialColumna] != paraulaSeparada[0].charAt(x)) {
-                                opcio_correcte = 2;
+                            if (inicialFila - x < 0
+                                    || Character.toLowerCase(sopa[inicialFila - x][inicialColumna]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
                             }
                         }
-                    }
-    
-                    case 2 -> { // Horitzontal Dreta
+                        if (correcte) {
+                            opcio_correcte = 2;
+                            break;
+                        }
+                        break;
+
+                    case 2: // Horitzontal
+                        correcte = true;
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
                             if (inicialColumna + x >= sopa[0].length
-                                    || sopa[inicialFila][inicialColumna + x] != paraulaSeparada[0].charAt(x)) {
+                                    || Character.toLowerCase(sopa[inicialFila][inicialColumna + x]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
-                            } else {
-                                opcio_correcte = 0;
                             }
                         }
-    
                         if (correcte) {
+                            opcio_correcte = 0;
                             break;
-                        } else {
-                            correcte = true;
                         }
-    
-                        // Horitzontal esquerra
+
+                        correcte = true;
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
                             if (inicialColumna - x < 0
-                                    || sopa[inicialFila][inicialColumna - x] != paraulaSeparada[0].charAt(x)) {
+                                    || Character.toLowerCase(sopa[inicialFila][inicialColumna - x]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
-                            } else {
-                                opcio_correcte = 1;
                             }
                         }
-                    }
-    
-                    case 3 -> { // Diagonal
-    
+                        if (correcte) {
+                            opcio_correcte = 1;
+                            break;
+                        }
+                        break;
+
+                    case 3: // Diagonal
                         correcte = true;
-                        // De dalt a l'esquerra a baix a la dreta
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
                             if (inicialFila + x >= sopa.length || inicialColumna + x >= sopa[0].length
-                                    || sopa[inicialFila + x][inicialColumna + x] != paraulaSeparada[0].charAt(x)) {
+                                    || Character.toLowerCase(sopa[inicialFila + x][inicialColumna + x]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
-                            } else {
-                                opcio_correcte = 4;
                             }
                         }
-    
                         if (correcte) {
+                            opcio_correcte = 5;
                             break;
-                        } else {
-                            correcte = true;
                         }
-    
-                        // De dalt a la dreta a baix a l'esquerra
+
+                        correcte = true;
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
                             if (inicialFila + x >= sopa.length || inicialColumna - x < 0
-                                    || sopa[inicialFila + x][inicialColumna - x] != paraulaSeparada[0].charAt(x)) {
+                                    || Character.toLowerCase(sopa[inicialFila + x][inicialColumna - x]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
-                            } else {
-                                opcio_correcte = 5;
                             }
                         }
-    
                         if (correcte) {
+                            opcio_correcte = 7;
                             break;
-                        } else {
-                            correcte = true;
                         }
-    
-                        // De baix a l'esquerra a dalt a la dreta
+
+                        correcte = true;
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
                             if (inicialFila - x < 0 || inicialColumna + x >= sopa[0].length
-                                    || sopa[inicialFila - x][inicialColumna + x] != paraulaSeparada[0].charAt(x)) {
+                                    || Character.toLowerCase(sopa[inicialFila - x][inicialColumna + x]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
-                            } else {
-                                opcio_correcte = 6;
                             }
                         }
-    
                         if (correcte) {
+                            opcio_correcte = 4;
                             break;
-                        } else {
-                            correcte = true;
                         }
-    
-                        // De baix a la dreta a dalt a l'esquerra
+
+                        correcte = true;
                         for (int x = 0; x < paraulaSeparada[0].length(); x++) {
                             if (inicialFila - x < 0 || inicialColumna - x < 0
-                                    || sopa[inicialFila - x][inicialColumna - x] != paraulaSeparada[0].charAt(x)) {
+                                    || Character.toLowerCase(sopa[inicialFila - x][inicialColumna - x]) != Character
+                                            .toLowerCase(paraulaSeparada[0].charAt(x))) {
                                 correcte = false;
                                 break;
-                            } else {
-                                opcio_correcte = 7;
                             }
                         }
-                    }
-                    default -> correcte = false;
+                        if (correcte) {
+                            opcio_correcte = 6;
+                            break;
+                        }
+                        break;
                 }
+
                 if (correcte) {
                     System.out.println("La paraula: " + paraulaSeparada[0] + ", és correcta");
                     paraulaCorrecta[punter] = paraulaSeparada[0];
-                    paraulaCorrecta(paraulaSeparada, inicialFila, inicialColumna);
+                    marcarParaulaCorrecta(paraulaSeparada, inicialFila, inicialColumna);
                     punter++;
                 } else {
                     System.out.println("La paraula és incorrecta");
@@ -634,169 +642,87 @@ public class Sopa_Lletres {
             System.out.println("Format incorrecte");
             correcte = false;
         }
-        
         return correcte;
-        }
+    }
 
-        public void modeAutomatic() {
-            for (String paraula : paraulesSeleccionades) {
-                boolean trobat = false;
-                int punt = 0;
-                for (int f = 0; f < sopa.length && !trobat; f++) {
-                    for (int c = 0; c < sopa[f].length && !trobat; c++) {
-                        if (sopa[f][c] == paraula.charAt(0)) {
-                            // Revisa les 8 direccions possibles
-                            int[] direccio = trobarDireccio(paraula, f, c);
-                            if (direccio != null) {
-                                // Determinar opcio_correcte basado en la dirección
-                                int filaDir = direccio[0];
-                                int colDir = direccio[1];
-                                if (filaDir == 0 && colDir == 1) {
-                                    opcio_correcte = 0; // Horitzontal dreta
-                                } else if (filaDir == 0 && colDir == -1) {
-                                    opcio_correcte = 1; // Horitzontal esquerra
-                                } else if (filaDir == 1 && colDir == 0) {
-                                    opcio_correcte = 3; // Vertical avall
-                                } else if (filaDir == -1 && colDir == 0) {
-                                    opcio_correcte = 2; // Vertical amunt
-                                } else if (filaDir == 1 && colDir == 1) {
-                                    opcio_correcte = 5; // Diagonal dreta avall
-                                } else if (filaDir == 1 && colDir == -1) {
-                                    opcio_correcte = 7; // Diagonal esquerra avall
-                                } else if (filaDir == -1 && colDir == 1) {
-                                    opcio_correcte = 4; // Diagonal dreta amunt
-                                } else if (filaDir == -1 && colDir == -1) {
-                                    opcio_correcte = 6; // Diagonal esquerra amunt
-                                }
-        
-                                paraulaCorrecta[punter++] = paraula;
-                                trobat = true;
-                                // Construir paraulaSeparada
-                                String[] paraulaSeparada = { paraula, 
-                                    (char) (c + 'A') + "" + (f + 1), 
-                                    (char) (c + colDir * (paraula.length() - 1) + 'A') + "" + (f + filaDir * (paraula.length() - 1) + 1) 
-                                };
-                                paraulaCorrecta(paraulaSeparada, f, c);
-                                printarSopa();
-                            }
-                        }
-                    }
-                }
-                
+    public void modeAutomatic() {
+        for (String paraula : paraulesSeleccionades) {
+            if (!paraulaJaTrobada(paraula)) {
+                trobarParaulaAutomatica(paraula);
             }
-            comprobarParaulesPerFinalitzar();
         }
-        
-        private int[] trobarDireccio(String paraula, int f, int c) {
-            // Definir les direccions com arrays de dos elements: [direcció de fila, direcció de columna]
-            int[][] direccions = {
-                {0, 1},  // Horitzontal dreta
-                {0, -1}, // Horitzontal esquerra
-                {1, 0},  // Vertical avall
-                {-1, 0}, // Vertical amunt
-                {1, 1},  // Diagonal dreta avall
-                {1, -1}, // Diagonal esquerra avall
-                {-1, 1}, // Diagonal dreta amunt
-                {-1, -1} // Diagonal esquerra amunt
-            };
-        
-            for (int[] direccio : direccions) {
-                if (revisarDireccio(paraula, f, c, direccio[0], direccio[1])) {
-                    return direccio; // Retorna la direcció si la paraula és trobada
-                }
+        comprobarParaulesPerFinalitzar();
+    }
+
+    public boolean paraulaJaTrobada(String paraula) {
+        for (String p : paraulaCorrecta) {
+            if (paraula.equals(p)) {
+                return true;
             }
-            return null; // Retorna null si la paraula no es troba en cap direcció
         }
-        
-        public boolean revisarDireccio(String paraula, int fila, int columna, int filaDir, int columnaDir) {
-            int llargada = paraula.length();
-            for (int k = 0; k < llargada; k++) {
-                int novaFila = fila + k * filaDir;
-                int novaColumna = columna + k * columnaDir;
-                if (novaFila < 0 || novaFila >= sopa.length || novaColumna < 0 || novaColumna >= sopa[0].length || sopa[novaFila][novaColumna] != paraula.charAt(k)) {
-                    return false;
-                }
-            }
-            return true;
-        }
+        return false;
+    }
 
-    public void paraulaCorrecta(String paraulaSeparada[], int inicialFila, int inicialColumna) {
-        opcio_correcte = opcio_correcte;
-        int longitud = paraulaSeparada[0].length();
-        switch (opcio_correcte) {
-            case 0 -> { // Horitzontal cap a la dreta
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialColumna + x < sopa[0].length) {
-                        sopa[inicialFila][inicialColumna + x] = Character
-                                .toUpperCase(sopa[inicialFila][inicialColumna + x]);
+    public void trobarParaulaAutomatica(String paraula) {
+        for (int fila = 0; fila < sopa.length; fila++) {
+            for (int col = 0; col < sopa[fila].length; col++) {
+                if (Character.toLowerCase(sopa[fila][col]) == paraula.charAt(0)) {
+                    int[] direccio = trobarDireccioParaula(paraula, fila, col);
+                    if (direccio != null) {
+                        paraulaCorrecta[punter] = paraula;
+                        marcarParaulaMajuscules(paraula, fila, col, direccio);
+                        punter++;
+                        System.out.println("Paraula trobada: " + paraula);
+                        printarSopa();
+                        return;
                     }
                 }
-            }
-            case 1 -> { // Horitzontal cap a l'esquerra
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialColumna - x >= 0) {
-                        sopa[inicialFila][inicialColumna - x] = Character
-                                .toUpperCase(sopa[inicialFila][inicialColumna - x]);
-                    }
-                }
-
-            }
-            case 2 -> { // Vertical amunt
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialFila - x >= 0) {
-                        sopa[inicialFila - x][inicialColumna] = Character
-                                .toUpperCase(sopa[inicialFila - x][inicialColumna]);
-                    }
-                }
-            }
-            case 3 -> { // Vertical avall
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialFila + x < sopa.length) {
-                        sopa[inicialFila + x][inicialColumna] = Character
-                                .toUpperCase(sopa[inicialFila + x][inicialColumna]);
-                    }
-                }
-            }
-            case 4 -> { // Diagonal de dalt a l'esquerra a baix a la dreta
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialFila + x < sopa.length && inicialColumna + x < sopa[0].length) {
-                        sopa[inicialFila + x][inicialColumna + x] = Character
-                                .toUpperCase(sopa[inicialFila + x][inicialColumna + x]);
-                    }
-                }
-            }
-            case 5 -> { // Diagonal de dalt a la dreta a baix a l'esquerra
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialFila + x < sopa.length && inicialColumna - x >= 0) {
-                        sopa[inicialFila + x][inicialColumna - x] = Character
-                                .toUpperCase(sopa[inicialFila + x][inicialColumna - x]);
-                    }
-                }
-            }
-            case 6 -> { // Diagonal de baix a l'esquerra a dalt a la dreta
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialFila - x >= 0 && inicialColumna + x < sopa[0].length) {
-                        sopa[inicialFila - x][inicialColumna + x] = Character
-                                .toUpperCase(sopa[inicialFila - x][inicialColumna + x]);
-                    }
-                }
-            }
-            case 7 -> { // Diagonal de baix a la dreta a dalt a l'esquerra
-                for (int x = 0; x < longitud; x++) {
-                    if (inicialFila - x >= 0 && inicialColumna - x >= 0) {
-                        sopa[inicialFila - x][inicialColumna - x] = Character
-                                .toUpperCase(sopa[inicialFila - x][inicialColumna - x]);
-                    }
-                }
-
             }
         }
     }
 
-    public void comprobarParaulesPerFinalitzar() {
-        if (paraulaCorrecta[4] != null) {
-            paraulesEncertades = true;
-            menuPrincipal = 0; // Volver al menú principal
+    public int[] trobarDireccioParaula(String paraula, int fila, int col) {
+        int[][] direccions = {
+                { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 },
+                { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 }
+        };
+
+        for (int i = 0; i < direccions.length; i++) {
+            if (comprovarParaulaEnDireccio(paraula, fila, col, direccions[i][0], direccions[i][1])) {
+                opcio_correcte = i;
+                return direccions[i];
+            }
+        }
+        return null;
+    }
+
+    public boolean comprovarParaulaEnDireccio(String paraula, int fila, int col, int dirFila, int dirCol) {
+        if (!estaDinsSopa(fila, col, dirFila, dirCol, paraula.length())) {
+            return false;
+        }
+
+        for (int i = 0; i < paraula.length(); i++) {
+            char lletraSopa = Character.toLowerCase(sopa[fila + (dirFila * i)][col + (dirCol * i)]);
+            if (lletraSopa != paraula.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean estaDinsSopa(int fila, int col, int dirFila, int dirCol, int longitud) {
+        int filaFinal = fila + (dirFila * (longitud - 1));
+        int colFinal = col + (dirCol * (longitud - 1));
+
+        return filaFinal >= 0 && filaFinal < sopa.length &&
+                colFinal >= 0 && colFinal < sopa[0].length;
+    }
+
+    public void marcarParaulaMajuscules(String paraula, int fila, int col, int[] direccio) {
+        for (int i = 0; i < paraula.length(); i++) {
+            int novaFila = fila + (direccio[0] * i);
+            int novaCol = col + (direccio[1] * i);
+            sopa[novaFila][novaCol] = Character.toUpperCase(sopa[novaFila][novaCol]);
         }
     }
 
@@ -804,6 +730,89 @@ public class Sopa_Lletres {
         return menuPrincipal == 3;
     }
 
+    public void comprobarParaulesPerFinalitzar() {
+        int paraulesTrobades = 0;
+        for (String paraula : paraulaCorrecta) {
+            if (paraula != null) {
+                paraulesTrobades++;
+            }
+        }
+        if (paraulesTrobades == paraulesSeleccionades.length) {
+            paraulesEncertades = true;
+            menuPrincipal = 0;
+        }
+    }
 
-    
+    public void marcarParaulaCorrecta(String[] paraulaSeparada, int inicialFila, int inicialColumna) {
+        int longitud = paraulaSeparada[0].length();
+        switch (opcio_correcte) {
+            case 0: // Horitzontal dreta
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialColumna + i < sopa[0].length) {
+                        sopa[inicialFila][inicialColumna + i] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+            case 1: // Horitzontal esquerra
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialColumna - i >= 0) {
+                        sopa[inicialFila][inicialColumna - i] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+            case 2: // Vertical amunt
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialFila - i >= 0) {
+                        sopa[inicialFila - i][inicialColumna] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+            case 3: // Vertical avall
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialFila + i < sopa.length) {
+                        sopa[inicialFila + i][inicialColumna] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+            case 4: // Diagonal dreta amunt
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialFila - i >= 0 && inicialColumna + i < sopa[0].length) {
+                        sopa[inicialFila - i][inicialColumna + i] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+            case 5: // Diagonal dreta avall
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialFila + i < sopa.length && inicialColumna + i < sopa[0].length) {
+                        sopa[inicialFila + i][inicialColumna + i] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+            case 6: // Diagonal esquerra amunt
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialFila - i >= 0 && inicialColumna - i >= 0) {
+                        sopa[inicialFila - i][inicialColumna - i] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+            case 7: // Diagonal esquerra avall
+                for (int i = 0; i < longitud; i++) {
+                    if (inicialFila + i < sopa.length && inicialColumna - i >= 0) {
+                        sopa[inicialFila + i][inicialColumna - i] = Character.toUpperCase(paraulaSeparada[0].charAt(i));
+                    }
+                }
+                break;
+        }
+    }
+
+    public void comencarCronometre() {
+        tempsInicial = System.currentTimeMillis();
+    }
+
+    public void pararCronometre() {
+        tempsFinal = System.currentTimeMillis();
+        long tempsTotal = (tempsFinal - tempsInicial) / 1000;
+        System.out.println("Has trigat " + tempsTotal + " segons en trobar totes les paraules");
+        paraulesEncertades = false;
+    }
 }
